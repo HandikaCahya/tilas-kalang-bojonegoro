@@ -594,6 +594,57 @@ header.scrolled .lang button.on{color:#2b1c0f}
   }
 }
 
+
+
+/* Jarak aman dari header untuk semua fitur selain hero beranda.
+   Header tetap pada posisi semula; hanya konten halaman yang diturunkan. */
+main > .page:not(#home) {
+  padding-top: 34px;
+}
+
+
+/* Perapian halaman Tentang Kami pada layar HP */
+@media (max-width: 760px) {
+  #tentang .about-grid,
+  #tentang .about-grid > div,
+  #tentang .about-manifesto,
+  #tentang .about-contact,
+  #tentang .contact-card,
+  #tentang .panel {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  #tentang .about-manifesto {
+    padding: 24px 20px;
+    border-radius: 22px;
+  }
+  #tentang .about-manifesto h2 {
+    font-size: clamp(1.65rem, 7vw, 2rem);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+    margin: 12px 0 14px;
+  }
+  #tentang .about-manifesto p {
+    font-size: 0.9rem;
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+  }
+  #tentang .about-manifesto .btn {
+    max-width: 100%;
+    white-space: normal;
+  }
+  #tentang .contact-card { padding: 17px 16px; }
+  #tentang .contact-card span {
+    display: block;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  #tentang .panel { padding: 20px 18px; }
+  #tentang .panel h3 { font-size: 1.2rem; line-height: 1.35; overflow-wrap: anywhere; }
+}
+
 </style>
 </head>
 <body>
