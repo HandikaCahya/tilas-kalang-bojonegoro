@@ -563,6 +563,37 @@ header.scrolled .lang button.on{color:#2b1c0f}
   }
 }
 
+
+/* Peta responsif khusus perangkat mobile */
+@media (max-width: 760px) {
+  .map-frame #mapSvg {
+    min-height: 0;
+    height: auto;
+    aspect-ratio: 800 / 552;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: contain;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  .map-frame #mapSvg svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  .map-frame #mapSvg svg:active {
+    cursor: grabbing;
+  }
+
+  .map-frame #mapSvg image {
+    pointer-events: none;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -880,7 +911,29 @@ function render(){
  var mx=2;$('bars').innerHTML=Object.keys(KEC).map(function(k){return '<div style="display:flex;gap:12px;align-items:center;margin:8px 0"><span style="width:110px">'+k+'</span><div style="flex:1;background:var(--line);border-radius:99px;height:12px"><div style="width:'+KEC[k]/mx*100+'%;height:12px;border-radius:99px;background:linear-gradient(90deg,var(--terracotta),var(--gold))"></div></div><b>'+KEC[k]+'</b></div>'}).join('');
  var nh=NEWS.map(function(n){return '<a class="nw-card" href="'+n.u+'" target="_blank" rel="noopener noreferrer"><div class="nw-img"><img src="'+n.img+'" alt="'+n.t.replace(/"/g,'&quot;')+'" style="object-position:'+n.pos+'">'+(n.ai?'<span class="nw-badge">'+t('aiBadge')+'</span>':'')+'</div><div class="nw-body"><span class="nw-chip">'+n.cat+'</span><h3>'+n.t+'</h3><div class="nw-meta">'+n.src+' · '+n.d+'</div><span class="nw-go">'+t('readMore')+' ↗</span></div></a>'}).join('');
  $('newsHome').innerHTML=nh;$('newsAll').innerHTML=nh;
- $('mapSvg').innerHTML='<svg viewBox="0 0 800 552" role="img" aria-label="Peta Bojonegoro"><image href="'+MAPIMG+'" width="800" height="552" style="border-radius:16px"/>'+LOC.map(function(l){return '<g class="pin'+(l.u?' u':'')+'" tabindex="0" role="button" aria-label="'+l.n+'" onclick="show(\''+l.id+'\')" onkeydown="if(event.key===\'Enter\')show(\''+l.id+'\')"><circle class="r" cx="'+l.x+'" cy="'+l.y+'" r="11"/><circle class="c" cx="'+l.x+'" cy="'+l.y+'" r="11"/></g>'}).join('')+'</svg>';
+ $('mapSvg').innerHTML =
+  '<svg id="mapCanvas" viewBox="0 0 800 552" ' +
+  'role="img" aria-label="Peta Bojonegoro">' +
+    '<g id="mapPanZoom">' +
+      '<image href="' + MAPIMG + '" ' +
+        'x="0" y="0" width="800" height="552" ' +
+        'preserveAspectRatio="none" />' +
+      LOC.map(function(l) {
+        return '<g class="pin' + (l.u ? ' u' : '') +
+          '" tabindex="0" role="button" aria-label="' + l.n +
+          '" onclick="show(\'' + l.id + '\')" ' +
+          'onkeydown="if(event.key===\'Enter\')show(\'' +
+          l.id + '\')">' +
+            '<circle class="r" cx="' + l.x + '" cy="' +
+              l.y + '" r="11"/>' +
+            '<circle class="c" cx="' + l.x + '" cy="' +
+              l.y + '" r="11"/>' +
+        '</g>';
+      }).join('') +
+    '</g>' +
+  '</svg>';
+
+initMapPanZoom();
  $('mapList').innerHTML=LOC.map(function(l){return '<button onclick="show(\''+l.id+'\')"><span>'+l.n+'</span><small style="color:var(--mute)">'+l.kShow+'</small></button>'}).join('');
  $('f2').innerHTML=Object.keys(KEC).map(function(k){return '<option>'+k+'</option>'}).join('');
  $('topics').innerHTML=['sejarah','lokasi','ciri','lapor'].map(function(k){return '<button onclick="say(\''+k+'\')">'+k[0].toUpperCase()+k.slice(1)+'</button>'}).join('');
@@ -908,6 +961,149 @@ function add(c,x){var d=document.createElement('div');d.className='m '+c;d.textC
 function say(k){add('u',k[0].toUpperCase()+k.slice(1));setTimeout(function(){add('b',ANS[k])},350)}
 function ask(e){e.preventDefault();var v=$('q').value.trim();if(!v)return;$('q').value='';add('u',v);var k=Object.keys(ANS).filter(function(x){return v.toLowerCase().indexOf(x)>-1})[0]||(/(ada di mana|dimana|desa)/i.test(v)?'lokasi':'');
  setTimeout(function(){add('b',k?ANS[k]:'Pertanyaan menarik! Coba tanya tentang sejarah, lokasi, ciri-ciri makam, atau cara melapor.')},350)}
+
+function initMapPanZoom() {
+  const svg = document.getElementById('mapCanvas');
+  const group = document.getElementById('mapPanZoom');
+
+  if (!svg || !group) return;
+
+  if (window.__mapPanZoomCleanup) {
+    window.__mapPanZoomCleanup();
+  }
+
+  let scale = 1;
+  let tx = 0;
+  let ty = 0;
+  const pointers = new Map();
+  let panStart = null;
+  let pinchStart = null;
+  let moved = false;
+  let suppressClick = false;
+
+  function point(e) {
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) * 800 / rect.width,
+      y: (e.clientY - rect.top) * 552 / rect.height
+    };
+  }
+
+  function applyTransform() {
+    group.setAttribute('transform',
+      `translate(${tx} ${ty}) scale(${scale})`);
+  }
+
+  function distance(a, b) {
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  }
+
+  function center(a, b) {
+    return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+  }
+
+  function onDown(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    e.preventDefault();
+    pointers.set(e.pointerId, point(e));
+    moved = false;
+
+    if (pointers.size === 1) {
+      const p = pointers.get(e.pointerId);
+      panStart = { x: p.x, y: p.y, tx, ty };
+      pinchStart = null;
+    }
+
+    if (pointers.size === 2) {
+      const pts = [...pointers.values()];
+      const c = center(pts[0], pts[1]);
+      pinchStart = {
+        distance: Math.max(distance(pts[0], pts[1]), 1),
+        scale,
+        worldX: (c.x - tx) / scale,
+        worldY: (c.y - ty) / scale
+      };
+      panStart = null;
+    }
+  }
+
+  function onMove(e) {
+    if (!pointers.has(e.pointerId)) return;
+    if (e.cancelable) e.preventDefault();
+    const p = point(e);
+    pointers.set(e.pointerId, p);
+
+    if (pointers.size === 1 && panStart) {
+      const dx = p.x - panStart.x;
+      const dy = p.y - panStart.y;
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+      tx = panStart.tx + dx;
+      ty = panStart.ty + dy;
+      applyTransform();
+    }
+
+    if (pointers.size === 2 && pinchStart) {
+      const pts = [...pointers.values()];
+      const c = center(pts[0], pts[1]);
+      const factor = distance(pts[0], pts[1]) / pinchStart.distance;
+      scale = Math.min(4, Math.max(1, pinchStart.scale * factor));
+      tx = c.x - pinchStart.worldX * scale;
+      ty = c.y - pinchStart.worldY * scale;
+      moved = true;
+      applyTransform();
+    }
+  }
+
+  function onUp(e) {
+    if (!pointers.has(e.pointerId)) return;
+    pointers.delete(e.pointerId);
+
+    if (moved) {
+      suppressClick = true;
+      setTimeout(() => { suppressClick = false; }, 0);
+    }
+
+    if (pointers.size === 1) {
+      const [id, p] = [...pointers.entries()][0];
+      panStart = { x: p.x, y: p.y, tx, ty };
+      pinchStart = null;
+    } else {
+      panStart = null;
+      pinchStart = null;
+    }
+  }
+
+  function onCancel(e) {
+    pointers.delete(e.pointerId);
+    panStart = null;
+    pinchStart = null;
+  }
+
+  function onClick(e) {
+    if (!suppressClick) return;
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    suppressClick = false;
+  }
+
+  svg.addEventListener('pointerdown', onDown);
+  svg.addEventListener('click', onClick, true);
+  window.addEventListener('pointermove', onMove, { passive: false });
+  window.addEventListener('pointerup', onUp);
+  window.addEventListener('pointercancel', onCancel);
+
+  window.__mapPanZoomCleanup = function() {
+    svg.removeEventListener('pointerdown', onDown);
+    svg.removeEventListener('click', onClick, true);
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    window.removeEventListener('pointercancel', onCancel);
+  };
+
+  applyTransform();
+}
+
 render();
 </script>
 
