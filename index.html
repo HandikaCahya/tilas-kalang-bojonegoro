@@ -543,6 +543,26 @@ header.scrolled .lang button.on{color:#2b1c0f}
  .intro-home{padding:31px 0 36px!important}.intro-history-grid{grid-template-columns:1fr;gap:21px}.history-collage{height:clamp(245px,72vw,315px);margin:0 4px}.history-intro-copy h2{font-size:2.2rem;margin-top:9px}.history-intro-copy p{font-size:14px;line-height:1.75}.history-intro-copy .btn{font-size:12px}.history-expand{margin-top:23px}.history-expand>summary{padding:14px;gap:10px}.history-expand-mark{width:34px;height:34px}.history-expand>summary strong{font-size:16px}.history-expand>summary small{font-size:10px}.history-full{padding:4px 13px 16px}.history-full-intro{padding-top:18px}.history-full-intro p{font-size:13px}.history-card-grid{grid-template-columns:1fr}.history-card,.history-card-wide{grid-column:auto;padding:17px}.history-card h4{font-size:19px}.history-card p{font-size:12.5px}.obong-steps{grid-template-columns:1fr}.history-source-note{font-size:11px}
 }
 
+
+@media (max-width: 900px) {
+  nav button {
+    width: 100%;
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 15px;
+    border-radius: 13px;
+    transform: none !important;
+
+    /* Memperjelas tulisan menu */
+    color: #543027 !important;
+  }
+
+  nav button.on {
+    background: var(--brown);
+    color: #ffffff !important;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -578,7 +598,7 @@ header.scrolled .lang button.on{color:#2b1c0f}
             <button class="btn ghost" data-scroll="home-story">Lihat kisah ↓</button>
           </div>
         </div>
-        <div class="home-hero-caption"><span class="home-hero-pin" aria-hidden="true">⌖</span><span><strong>Makam Orang Kalang</strong><small>Bojonegoro, Jawa Timur</small></span></div>
+        <!-- <div class="home-hero-caption"><span class="home-hero-pin" aria-hidden="true">⌖</span><span><strong>Makam Orang Kalang</strong><small>Bojonegoro, Jawa Timur</small></span></div> -->
       </div>
     </section>
 
